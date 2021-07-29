@@ -8,8 +8,21 @@
     <div
       ref="phantomContainer"
       :style="{ height: `${phantomHeight}px`, position: `relative` }"
+    />
+    <div
+      v-for="item in renderContentList"
+      :key="`list-item-${item.index}`"
+      :style="{
+        width: `100%`,
+        height: `${estimateRowHeight}px`,
+        position: `absolute`,
+        left: 0,
+        right: 0,
+        top: `${item.index * estimateRowHeight}px`,
+        borderBottom: `1px solid #000`,
+      }"
     >
-      {{  }}
+      {{ item.content }}
     </div>
   </div>
 </template>
@@ -21,7 +34,7 @@ export default {
   props: {
     list: {
       type: Array,
-      default: () => [],
+      required: true,
     },
 
     height: {
@@ -45,6 +58,15 @@ export default {
     },
   },
 
+  data() {
+    return {
+      startIndex: 0,
+      originalStartIndex: 0,
+      endIndex: 0,
+      scrollTop: 0,
+    };
+  },
+
   computed: {
     phantomHeight({ estimateRowHeight, total }) {
       return estimateRowHeight * total;
@@ -53,12 +75,44 @@ export default {
     limit({ height, estimateRowHeight }) {
       return Math.ceil(height / estimateRowHeight);
     },
+
+    renderContentList({ startIndex, endIndex, list }) {
+      return list.slice(startIndex, endIndex);
+    },
   },
 
-  watch: {},
-
   methods: {
-    handleScroll() {},
+    handleScroll(event) {
+      if (event.target === this.$refs[`scrollingContainer`]) {
+        const {
+          target: { scrollTop },
+        } = event;
+
+        const currentStartIndex = Math.floor(
+          scrollTop / this.estimateRowHeight
+        );
+        if (currentStartIndex !== this.startIndex) {
+          this.originalStartIndex = currentStartIndex;
+
+          this.startIndex = Math.max(this.originalStartIndex - this.buffer, 0);
+          console.log(`start index`, this.startIndex);
+          this.endIndex = Math.min(
+            currentStartIndex + this.limit,
+            this.total - 1
+          );
+
+          this.scrollTop = scrollTop;
+        }
+      }
+    },
+  },
+
+  mounted() {
+    this.endIndex = Math.min(
+      this.startIndex + this.limit + this.buffer,
+      this.total - 1
+    );
+    console.log(`endIndex`, this.endIndex);
   },
 };
 </script>
