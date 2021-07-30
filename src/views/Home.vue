@@ -1,18 +1,25 @@
 <template>
   <div class="home">
-    <virtual-list
+    <!-- <virtual-list
       v-if="list && list.length > 0"
       :buffer="bufferSize"
       :list="list"
       :total="total"
       :height="800"
       :estimate-row-height="100"
+    /> -->
+    <virtual-list
+      v-if="list && list.length > 0"
+      :buffer="bufferSize"
+      :list="list"
+      :total="total"
+      :height="600"
     />
   </div>
 </template>
 
 <script>
-// import faker from 'faker';
+import faker from 'faker';
 import VirtualList from '@/components/VirtualList2.vue';
 
 export default {
@@ -39,7 +46,7 @@ export default {
     const list = [];
     for (let i = 0; i < 10000; i++) {
       // this.data.push(faker.loream.sentences());
-      list.push({ index: i, content: i });
+      list.push({ index: i, content: faker.lorem.sentences() });
     }
     this.list = list;
   },
