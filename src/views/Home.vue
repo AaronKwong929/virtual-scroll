@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <virtual-list
-      v-if="list.length"
+      v-if="list && list.length > 0"
       :buffer="bufferSize"
       :list="list"
       :total="total"
@@ -13,7 +13,7 @@
 
 <script>
 // import faker from 'faker';
-import VirtualList from '@/components/VirtualList.vue';
+import VirtualList from '@/components/VirtualList2.vue';
 
 export default {
   name: `Home`,
@@ -36,10 +36,12 @@ export default {
   },
 
   mounted() {
+    const list = [];
     for (let i = 0; i < 10000; i++) {
       // this.data.push(faker.loream.sentences());
-      this.list.push({ index: i, content: i });
+      list.push({ index: i, content: i });
     }
+    this.list = list;
   },
 };
 </script>

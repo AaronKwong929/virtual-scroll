@@ -7,25 +7,30 @@
   >
     <div
       ref="phantomContainer"
-      :style="{ height: `${phantomHeight}px`, position: `relative` }"
+      :style="{
+        height: `${phantomHeight}px`,
+        position: `relative`,
+        zIndex: `-1`,
+      }"
     />
 
     <div
       ref="actualContent"
       class="actual-content"
-      :style="{ position: `absolute` }"
+      :style="{
+        position: `absolute`,
+        transForm: getTransform(),
+        top: 0,
+        width: `100%`,
+      }"
     >
       <div
         v-for="item in renderContentList"
         :key="`list-item-${item.index}`"
+        :id="`list-item-${item.index}`"
         :style="{
           width: `100%`,
           height: `${estimateRowHeight}px`,
-          position: `absolute`,
-          left: 0,
-          right: 0,
-          top: `${item.index * estimateRowHeight}px`,
-          borderBottom: `1px solid #000`,
         }"
       >
         {{ item.content }}
@@ -54,10 +59,10 @@ export default {
       required: true,
     },
 
-    estimateRowHeight: {
-      type: Number,
-      required: true,
-    },
+    // estimateRowHeight: {
+    //   type: Number,
+    //   required: true,
+    // },
 
     buffer: {
       type: Number,
@@ -74,6 +79,7 @@ export default {
 
       cachedPositions: [],
       phantomHeight: 0,
+      estimateRowHeight: 0,
     };
   },
 
@@ -84,6 +90,14 @@ export default {
 
     renderContentList({ startIndex, endIndex, list }) {
       return list.slice(startIndex, endIndex);
+    },
+  },
+
+  watch: {
+    list() {
+      if (this.$refs[`actualContent`] && this.total) {
+        this.updateCachedPositions();
+      }
     },
   },
 
@@ -134,20 +148,54 @@ export default {
       }
       this.estimateRowHeight = this.cachedPositions[
         this.cachedPositions.length - 1
-      ].bottom; // 总高度等于数组最后一个元素的 bottom 数值
+      ].bottom; // NOTE: 总高度等于数组最后一个元素的 bottom 数值
     },
 
     updateCachedPositions() {
-      
+      const nodeList = this.$refs[`actualContent`].childNodes;
+      const start = nodeList[0];
+      nodeList.forEach(node => {
+        if (!node) return;
+        const { height } = node.getBoundingClientRect();
+        const index = Number(node.id.split(`-`)[2]);
+        const oldHeight = this.cachedPositions[index].height;
+        const dValue = oldHeight - height;
+
+        if (dValue) {
+          this.cachedPositions[index].bottom -= dValue;
+          this.cachedPositions[index].height = height;
+          this.cachedPositions[index].dValue = dValue;
+        }
+      });
+
+      // eslint-disable-next-line no-unused-vars
+      let startIndex = 0;
+      if (start) startIndex = Number(start.id.split(`-`)[2]);
+      const { length: cachedPositionsLen } = this.cachedPositions;
+      let cumulativeDiffHeight = this.cachedPositions[startIndex].dValue;
+      this.cachedPositions[startIndex].dValue = 0;
+
+      for (let i = startIndex + 1; i < cachedPositionsLen; ++i) {
+        const item = this.cachedPositions[i];
+        // update height
+        this.cachedPositions[i].top = this.cachedPositions[i - 1].bottom;
+        this.cachedPositions[i].bottom =
+          this.cachedPositions[i].bottom - cumulativeDiffHeight;
+
+        if (item.dValue !== 0) {
+          cumulativeDiffHeight += item.dValue;
+          item.dValue = 0;
+        }
+      }
+
+      // update our phantom div height
+      const height = this.cachedPositions[cachedPositionsLen - 1].bottom;
+      this.phantomHeight = height;
+      // this.$refs[`phantomContainer`].style.height = `${height}px`;
     },
   },
 
-  updated() {
-    if (this.$refs[`actualContent`] && this.total) {
-      this.updateCachedPositions();
-    }
-    return;
-  },
+  updated() {},
 
   mounted() {
     this.endIndex = Math.min(
